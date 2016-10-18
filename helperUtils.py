@@ -82,4 +82,44 @@ data, count, dictionary, reverse_dictionary = build_dataset(words)
 del words
 #%%
 print 'Most common words: ', count[:5]
-print('Sample data', data[:10], [reverse_dictionary[i] for i in data[:10]])
+print 'Sample data:','\n', data[:10],'\n',[reverse_dictionary[i] for i in data[:10]]
+#%%
+data_index = 0
+# generate trainign batches for SkipGram model
+def gen_batch(batch_size, num_skips, skip_window):
+    global data_index
+    assert batch_size % num_skips == 0
+    assert num_skips <= 2 * skip_window
+
+    # initialize batch and labels
+    batch = np.ndarray(shape=(batch_size), dtype=np.int32)
+    labels = np.ndarray(shape=(batch_size, 1), dtype=np.int32)
+    # span is the length of skip_window+target+skip_window
+    span = 2* skip_window + 1
+    # init a buffer with length span
+    buf = collections.deque(maxlen=span)
+    # read the first bit of the text, length = span, into the buffer
+    for _ in xrange(span):
+        buf.append(data[data_index])
+        # use indexing with %len(data) for doing the indexing correctly after
+        # on loop of the text. This is needed for more than one epoch of
+        # training
+        data_index = (data_index + 1) % len(data)
+    # 
+    for i in xrange(batch_size // num_skips):
+        target = skip_window # target label at the center of the buffer
+        targets_avoid = [ skip_window ]
+        for j in xrange(num_skips):
+            while target in targets_avoid:
+                target = random.randint(0, span -1)
+            targets_avoid.append(target)
+            batch[i * num_skips + j] = buf[skip_window]
+            labels[i * num_skips + j, 0] = buf[target]
+        buf.append(data[data_index])
+        data_index = (data_index + 1) % len(data)
+        
+    return batch, labels
+#%%
+batch, labels = gen_batch(batch_size=8, num_skips=2, skip_window=1)
+print batch
+print labels
