@@ -6,3 +6,9 @@ Github : peymanbey
 """
 #%%
 import tensorflow as TF
+#%%
+print 'batch',batch
+print 'labels',labels.T
+print 'buf', buf
+
+
